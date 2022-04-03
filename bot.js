@@ -363,8 +363,8 @@ async function attemptPlace(accessToken) {
                 console.log(`Pixel posted too soon! Next pixel is placed at ${nextPixelDate.toLocaleTimeString()}.`)
                 setTimeout(retry, delay);
             } else {
-                console.error(`[!!] Critical Error: ${error.message}. Did you copy the 'reddit_session' cookie correctly?`);
-                console.error(`[!!] Fix this and restart the script`);
+                console.error(`[!!] Error: ${error.message}. Did you copy the 'reddit_session' cookie correctly?`);
+                setTimeout(retry, 3000);
             }
         } else {
             const nextPixel = data.data.act.data[0].data.nextAvailablePixelTimestamp + 3000;
