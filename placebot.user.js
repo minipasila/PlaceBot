@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Overcast Place Bot
 // @namespace    https://github.com/Indicardo/PlaceBot
-// @version      1
+// @version      2
 // @description  A place bot for oc.tc!
 // @author       NoahvdAa, Indicado
 // @match        https://www.reddit.com/r/place/*
@@ -110,7 +110,7 @@ function connectSocket() {
         duration: DEFAULT_TOAST_DURATION_MS
     }).showToast();
 
-    socket = new WebSocket('wss://play.oc.tc:4000/api/ws');
+    socket = new WebSocket('wss://placebot.oc.tc/api/ws');
 
     socket.onopen = function () {
         Toastify({
@@ -135,7 +135,7 @@ function connectSocket() {
                     text: `Load new folder (reason: ${data.reason ? data.reason : 'connected to server'})...`,
                     duration: DEFAULT_TOAST_DURATION_MS
                 }).showToast();
-                currentOrderCtx = await getCanvasFromUrl(`https://play.oc.tc:4000/maps/${data.data}`, currentOrderCanvas, 0, 0, true);
+                currentOrderCtx = await getCanvasFromUrl(`http://play.oc.tc:4000/maps/${data.data}`, currentOrderCanvas, 0, 0, true);
                 order = getRealWork(currentOrderCtx.getImageData(0, 0, 2000, 1000).data);
                 Toastify({
                     text: `New map loaded, ${order.length} pixels in total`,

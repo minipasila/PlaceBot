@@ -2,7 +2,7 @@ import fetch from 'node-fetch';
 import getPixels from "get-pixels";
 import WebSocket from 'ws';
 
-const VERSION_NUMBER = 1;
+const VERSION_NUMBER = 2;
 
 console.log(`Overcast Place Bot headless client V${VERSION_NUMBER}`);
 
@@ -143,7 +143,7 @@ async function refreshTokens() {
 function connectSocket() {
     console.log('Connecting to Overcast Place Bot server...')
 
-    socket = new WebSocket('wss://play.oc.tc:4000/api/ws');
+    socket = new WebSocket('wss://placebot.oc.tc/api/ws');
 
     socket.onerror = function(e) {
         console.error("Socket error: " + e.message)
