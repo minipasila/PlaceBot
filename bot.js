@@ -2,7 +2,7 @@ import fetch from 'node-fetch';
 import getPixels from "get-pixels";
 import WebSocket from 'ws';
 
-const VERSION_NUMBER = 4;
+const VERSION_NUMBER = 5;
 
 console.log(`Overcast Place Bot headless client V${VERSION_NUMBER}`);
 
@@ -67,7 +67,7 @@ const COLOR_MAPPINGS = {
     '#FFFFFF': 31
 };
 
-let rgbaJoin = (a1, a2, rowSize = 2000, cellSize = 4) => {
+let rgbaJoinH = (a1, a2, rowSize = 1000, cellSize = 4) => {
     const rawRowSize = rowSize * cellSize;
     const rows = a1.length / rawRowSize;
     let result = new Uint8Array(a1.length + a2.length);
@@ -75,6 +75,26 @@ let rgbaJoin = (a1, a2, rowSize = 2000, cellSize = 4) => {
         result.set(a1.slice(rawRowSize * row, rawRowSize * (row+1)), rawRowSize * 2 * row);
         result.set(a2.slice(rawRowSize * row, rawRowSize * (row+1)), rawRowSize * (2 * row + 1));
     }
+    return result;
+};
+
+let rgbaJoinV = (a1, a2, rowSize = 2000, cellSize = 4) => {
+    let result = new Uint8Array(a1.length + a2.length);
+
+    const rawRowSize = rowSize * cellSize;
+
+    const rows1 = a1.length / rawRowSize;
+
+    for (var row = 0; row < rows1; row++) {
+        result.set(a1.slice(rawRowSize * row, rawRowSize * (row+1)), rawRowSize * row);
+    }
+
+    const rows2 = a2.length / rawRowSize;
+
+    for (var row = 0; row < rows2; row++) {
+        result.set(a2.slice(rawRowSize * row, rawRowSize * (row+1)), (rawRowSize * row) + a1.length);
+    }
+
     return result;
 };
 
@@ -199,9 +219,13 @@ async function attemptPlace(accessToken) {
     
     var map0;
     var map1;
+    var map2;
+    var map3;
     try {
-        map0 = await getMapFromUrl(await getCurrentImageUrl('0'))
+        map0 = await getMapFromUrl(await getCurrentImageUrl('0'));
         map1 = await getMapFromUrl(await getCurrentImageUrl('1'));
+        map2 = await getMapFromUrl(await getCurrentImageUrl('2'));
+        map3 = await getMapFromUrl(await getCurrentImageUrl('3'));
     } catch (e) {
         console.warn('Error retrieving folder: ', e);
         setTimeout(retry, 15000); // probeer opnieuw in 15sec.
@@ -209,7 +233,9 @@ async function attemptPlace(accessToken) {
     }
 
     const rgbaOrder = currentOrders.data;
-    const rgbaCanvas = rgbaJoin(map0.data, map1.data);
+    const rgbaCanvasH0 = rgbaJoinH(map0.data, map1.data);
+    const rgbaCanvasH1 = rgbaJoinH(map2.data, map3.data);
+    const rgbaCanvas = rgbaJoinV(rgbaCanvasH0, rgbaCanvasH1);
     const work = getPendingWork(currentOrderList, rgbaOrder, rgbaCanvas);
 
     if (work.length === 0) {
@@ -271,7 +297,7 @@ function place(x, y, color, accessToken = defaultAccessToken) {
 							'y': y % 1000
 						},
 						'colorIndex': color,
-						'canvasIndex': (x > 999 ? 1 : 0)
+						'canvasIndex': getCanvas(x, y)
 					}
 				}
 			},
@@ -355,6 +381,14 @@ function getMapFromUrl(url) {
             resolve(pixels)
         })
     });
+}
+
+function getCanvas(x, y) {
+    if (x <= 999) {
+        return y <= 999 ? 0 : 2;
+    } else {
+        return y <= 999 ? 1 : 3;
+    }
 }
 
 function rgbToHex(r, g, b) {
