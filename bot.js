@@ -2,7 +2,7 @@ import fetch from 'node-fetch';
 import getPixels from "get-pixels";
 import WebSocket from 'ws';
 
-const VERSION_NUMBER = 2;
+const VERSION_NUMBER = 3;
 
 console.log(`Overcast Place Bot headless client V${VERSION_NUMBER}`);
 
@@ -166,7 +166,7 @@ function connectSocket() {
         switch (data.type.toLowerCase()) {
             case 'map':
                 console.log(`New folder loaded (reason: ${data.reason ? data.reason : 'connected to server'})`)
-                currentOrders = await getMapFromUrl(`http://play.oc.tc:4000/maps/${data.data}`);
+                currentOrders = await getMapFromUrl(`https://placebot.oc.tc/maps/${data.data}`);
                 currentOrderList = getRealWork(currentOrders.data);
                 break;
             default:
