@@ -1,18 +1,18 @@
 // ==UserScript==
-// @name         Overcast Place Bot
+// @name         PuuCraft Place Bot
 // @namespace    https://github.com/Indicardo/PlaceBot
 // @version      5
-// @description  A place bot for oc.tc!
+// @description  A place bot for PuuCraft!
 // @author       NoahvdAa, Indicado
 // @match        https://www.reddit.com/r/place/*
 // @match        https://new.reddit.com/r/place/*
 // @connect      reddit.com
-// @connect      placebot.oc.tc
+// @connect      commando.minipasila.repl.co
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=reddit.com
 // @require	     https://cdn.jsdelivr.net/npm/toastify-js
 // @resource     TOASTIFY_CSS https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css
-// @updateURL    https://github.com/Indicardo/PlaceBot/raw/master/placebot.user.js
-// @downloadURL  https://github.com/Indicardo/PlaceBot/raw/master/placebot.user.js
+// @updateURL    https://github.com/minipasila/PlaceBot/raw/master/placebot.user.js
+// @downloadURL  https://github.com/minipasila/PlaceBot/raw/master/placebot.user.js
 // @grant        GM_getResourceText
 // @grant        GM_addStyle
 // @grant        GM.xmlHttpRequest
@@ -121,7 +121,7 @@ function connectSocket() {
         duration: DEFAULT_TOAST_DURATION_MS
     }).showToast();
 
-    socket = new WebSocket('wss://placebot.oc.tc/api/ws');
+    socket = new WebSocket('wss://commando.minipasila.repl.co/api/ws');
 
     socket.onopen = () => {
         Toastify({
@@ -146,7 +146,7 @@ function connectSocket() {
                     text: `Load new folder (reason: ${data.reason ? data.reason : 'connected to server'})...`,
                     duration: DEFAULT_TOAST_DURATION_MS
                 }).showToast();
-                currentOrderCtx = await getCanvasFromUrl(`https://placebot.oc.tc/maps/${data.data}`, currentOrderCanvas, 0, 0, true);
+                currentOrderCtx = await getCanvasFromUrl(`https://commando.minipasila.repl.co/maps/${data.data}`, currentOrderCanvas, 0, 0, true);
                 order = getRealWork(currentOrderCtx.getImageData(0, 0, 2000, 2000).data);
                 Toastify({
                     text: `New map loaded, ${order.length} pixels in total`,
