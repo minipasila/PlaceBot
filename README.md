@@ -1,6 +1,6 @@
-# Overcast Place Bot
+# PuuCraft Place Bot
 
-The bot for oc.tc and their allies, forked from PlaceNL! This bot connects with the [command server](https://github.com/Indicardo/Commando) and gets its orders from there. You can see the order history [here](https://placebot.oc.tc/).
+The bot for PuuCraft and their allies, forked from PlaceNL! This bot connects with the [command server](https://github.com/Indicardo/Commando) and gets its orders from there. You can see the order history [here](https://placebot.oc.tc/).
 
 ## User script bot
 
@@ -9,7 +9,7 @@ The bot for oc.tc and their allies, forked from PlaceNL! This bot connects with 
 before you start, make sure your cooldown has run out!
 
 1. Install the [Tampermonkey](https://www.tampermonkey.net/) browser extensbion.
-2. Click on this link: [https://github.com/Indicardo/PlaceBot/raw/master/placebot.user.js](https://github.com/Indicardo/PlaceBot/raw/master/placebot.user.js). If everything went well you'll see Tampermonkey ask you to add it. Click **Install**.
+2. Click on this link: [https://github.com/minipasila/PlaceBot/raw/master/placebot.user.js](https://github.com/minipasila/PlaceBot/raw/master/placebot.user.js). If everything went well you'll see Tampermonkey ask you to add it. Click **Install**.
 3. Reload your **r/place** tab. If everything went well, you'll see "Getting access token..." in the top right of your screen. The bot is now active, You'll be able to see what the bot is doing through these messages.
 
 ### Cons of this bot
@@ -33,7 +33,7 @@ before you start, make sure your cooldown has run out!
 ### Installation instructions
 
 1. Install [NodeJS](https://nodejs.org/).
-2. Download the bot via [this link](https://github.com/Indicardo/PlaceBot/archive/refs/heads/master.zip), or clone the repository.
+2. Download the bot via [this link](https://github.com/PuuCraft/PlaceBot/archive/refs/heads/master.zip), or clone the repository.
 3. Extract the bot anywhere on your desktop
 4. Open a command prompt/terminal in this folder
 
