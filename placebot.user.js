@@ -1,11 +1,13 @@
 // ==UserScript==
 // @name         Overcast Place Bot
 // @namespace    https://github.com/Indicardo/PlaceBot
-// @version      4
+// @version      5
 // @description  A place bot for oc.tc!
 // @author       NoahvdAa, Indicado
 // @match        https://www.reddit.com/r/place/*
 // @match        https://new.reddit.com/r/place/*
+// @connect      reddit.com
+// @connect      placebot.oc.tc
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=reddit.com
 // @require	     https://cdn.jsdelivr.net/npm/toastify-js
 // @resource     TOASTIFY_CSS https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css
@@ -13,6 +15,7 @@
 // @downloadURL  https://github.com/Indicardo/PlaceBot/raw/master/placebot.user.js
 // @grant        GM_getResourceText
 // @grant        GM_addStyle
+// @grant        GM.xmlHttpRequest
 // ==/UserScript==
 
 var socket;
@@ -60,7 +63,7 @@ const COLOR_MAPPINGS = {
     '#FFFFFF': 31
 };
 
-let getRealWork = rgbaOrder => {
+function getRealWork(rgbaOrder){
     let order = [];
     for (var i = 0; i < 4000000; i++) {
         if (rgbaOrder[(i * 4) + 3] !== 0) {
@@ -70,7 +73,7 @@ let getRealWork = rgbaOrder => {
     return order;
 };
 
-let getPendingWork = (work, rgbaOrder, rgbaCanvas) => {
+function getPendingWork(work, rgbaOrder, rgbaCanvas) {
     let pendingWork = [];
     for (const i of work) {
         if (rgbaOrderToHex(i, rgbaOrder) !== rgbaOrderToHex(i, rgbaCanvas)) {
@@ -120,16 +123,16 @@ function connectSocket() {
 
     socket = new WebSocket('wss://placebot.oc.tc/api/ws');
 
-    socket.onopen = function () {
+    socket.onopen = () => {
         Toastify({
             text: 'Connected to Overcast Place Bot server!',
             duration: DEFAULT_TOAST_DURATION_MS
         }).showToast();
         socket.send(JSON.stringify({ type: 'getmap' }));
-        socket.send(JSON.stringify({ type: 'brand', brand: 'userscriptV20' }));
+        socket.send(JSON.stringify({ type: 'brand', brand: 'userscriptV5' }));
     };
 
-    socket.onmessage = async function (message) {
+    socket.onmessage = async (message) => {
         var data;
         try {
             data = JSON.parse(message.data);
@@ -162,7 +165,7 @@ function connectSocket() {
         }
     };
 
-    socket.onclose = function (e) {
+    socket.onclose = (e) => {
         Toastify({
             text: `Overcast Place Bot has disconnected: ${e.reason}`,
             duration: DEFAULT_TOAST_DURATION_MS
@@ -174,7 +177,7 @@ function connectSocket() {
 }
 
 async function attemptPlace() {
-    if (order === undefined) {
+    if (!order) {
         setTimeout(attemptPlace, 2000); // probeer opnieuw in 2sec.
         return;
     }
@@ -187,7 +190,7 @@ async function attemptPlace() {
     } catch (e) {
         console.warn('Error retrieving folder: ', e);
         Toastify({
-            text: 'Error retrieving folder. Try again in 10 seconds..',
+            text: 'Error retrieving folder. Trying again in 10 seconds..',
             duration: DEFAULT_TOAST_DURATION_MS
         }).showToast();
         setTimeout(attemptPlace, 10000); // probeer opnieuw in 10sec.
@@ -198,9 +201,9 @@ async function attemptPlace() {
     const rgbaCanvas = ctx.getImageData(0, 0, 2000, 2000).data;
     const work = getPendingWork(order, rgbaOrder, rgbaCanvas);
 
-    if (work.length === 0) {
+    if (!work.length) {
         Toastify({
-            text: `All pixels are already in the right place! Try again in 30 seconds...`,
+            text: `All pixels are already in the right place! Trying again in 30 seconds...`,
             duration: 30000
         }).showToast();
         setTimeout(attemptPlace, 30000); // probeer opnieuw in 30sec.
@@ -353,23 +356,35 @@ async function getCurrentImageUrl(id = '0') {
 function getCanvasFromUrl(url, canvas, x = 0, y = 0, clearCanvas = false) {
     return new Promise((resolve, reject) => {
         let loadImage = ctx => {
-            var img = new Image();
-            img.crossOrigin = 'anonymous';
-            img.onload = () => {
-                if (clearCanvas) {
-                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+            GM.xmlHttpRequest({
+                method: "GET",
+                url,
+                responseType: 'blob',
+                onload: (response) => {
+                    const urlCreator = window.URL || window.webkitURL;
+                    const imageUrl = urlCreator.createObjectURL(response.response);
+
+                    let img = new Image();
+
+                    img.onload = () => {
+                        if (clearCanvas) {
+                            ctx.clearRect(0, 0, canvas.width, canvas.height);
+                        }
+                        ctx.drawImage(img, x, y);
+                        resolve(ctx);
+                    };
+
+                    img.onerror = () => {
+                        Toastify({
+                            text: 'Error retrieving folder. Trying again in 3 sec...',
+                            duration: 3000
+                        }).showToast();
+                        setTimeout(() => loadImage(ctx), 3000);
+                    };
+                    
+                    img.src = imageUrl;
                 }
-                ctx.drawImage(img, x, y);
-                resolve(ctx);
-            };
-            img.onerror = () => {
-                Toastify({
-                    text: 'Error retrieving folder. Try again in 3 sec...',
-                    duration: 3000
-                }).showToast();
-                setTimeout(() => loadImage(ctx), 3000);
-            };
-            img.src = url;
+            })
         };
         loadImage(canvas.getContext('2d'));
     });
@@ -379,5 +394,6 @@ function rgbToHex(r, g, b) {
     return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1).toUpperCase();
 }
 
-let rgbaOrderToHex = (i, rgbaOrder) =>
-    rgbToHex(rgbaOrder[i * 4], rgbaOrder[i * 4 + 1], rgbaOrder[i * 4 + 2]);
+function rgbaOrderToHex(i, rgbaOrder) {
+    return rgbToHex(rgbaOrder[i * 4], rgbaOrder[i * 4 + 1], rgbaOrder[i * 4 + 2]);
+}

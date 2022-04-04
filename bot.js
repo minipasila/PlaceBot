@@ -4,34 +4,29 @@ import getPixels from "get-pixels";
 import WebSocket from 'ws';
 import https from 'https'
 
-const VERSION_NUMBER = 6;
+const VERSION_NUMBER = 7;
 
 console.log(`Overcast Place Bot headless client V${VERSION_NUMBER}`);
 
 const args = process.argv.slice(2);
 
-//if (args.length != 1 && !process.env.ACCESS_TOKEN) {
-//    console.error("Missing access token.")
-//    process.exit(1);
-//}
-
-
 let redditSessionCookies = (process.env.REDDIT_SESSION || args[0])
 if (redditSessionCookies) redditSessionCookies = redditSessionCookies.split(';')
 
-let userNames = (process.env.BOT_USERNAME || false)
-if (userNames) userNames = userNames.split(';');
-let passWords = (process.env.BOT_PASSWORD || false)
-if (passWords) passWords = passWords.split(';');
+let usernames = (process.env.BOT_USERNAME || false)
+if (usernames) usernames = usernames.split(';');
 
-if (userNames || passWords) {
-    if (userNames?.length !== passWords?.length) {
+let passwords = (process.env.BOT_PASSWORD || false)
+if (passwords) passwords = passwords.split(';');
+
+if (usernames || passwords) {
+    if (usernames?.length !== passwords?.length) {
         console.error('Introduce one user per password (and vice versa).');
-        userNames = false;
-        passWords = false;
+        usernames = false;
+        passwords = false;
     }
 }
-if (!(redditSessionCookies || (userNames && passWords))) {
+if (!(redditSessionCookies || (usernames && passwords))) {
     console.error("Missing credentials cookie.")
     process.exit(1);
 }
@@ -43,7 +38,7 @@ let accessTokens;
 let defaultAccessToken;
 
 if (redditSessionCookies.length > 4) {
-    console.warn("More than 4 reddit accounts per IP address is not recommended!")
+    console.warn("Using more than 4 reddit accounts per IP address is not recommended!")
 }
 
 var socket;
@@ -85,7 +80,7 @@ const COLOR_MAPPINGS = {
     '#FFFFFF': 31
 };
 
-let rgbaJoinH = (a1, a2, rowSize = 1000, cellSize = 4) => {
+function rgbaJoinH(a1, a2, rowSize = 1000, cellSize = 4) {
     const rawRowSize = rowSize * cellSize;
     const rows = a1.length / rawRowSize;
     let result = new Uint8Array(a1.length + a2.length);
@@ -96,7 +91,7 @@ let rgbaJoinH = (a1, a2, rowSize = 1000, cellSize = 4) => {
     return result;
 };
 
-let rgbaJoinV = (a1, a2, rowSize = 2000, cellSize = 4) => {
+function rgbaJoinV(a1, a2, rowSize = 2000, cellSize = 4) {
     let result = new Uint8Array(a1.length + a2.length);
 
     const rawRowSize = rowSize * cellSize;
@@ -116,7 +111,7 @@ let rgbaJoinV = (a1, a2, rowSize = 2000, cellSize = 4) => {
     return result;
 };
 
-let getRealWork = rgbaOrder => {
+function getRealWork(rgbaOrder){
     let order = [];
     for (var i = 0; i < 4000000; i++) {
         if (rgbaOrder[(i * 4) + 3] !== 0) {
@@ -126,7 +121,7 @@ let getRealWork = rgbaOrder => {
     return order;
 };
 
-let getPendingWork = (work, rgbaOrder, rgbaCanvas) => {
+function getPendingWork(work, rgbaOrder, rgbaCanvas) {
     let pendingWork = [];
     for (const i of work) {
         if (rgbaOrderToHex(i, rgbaOrder) !== rgbaOrderToHex(i, rgbaCanvas)) {
@@ -138,8 +133,8 @@ let getPendingWork = (work, rgbaOrder, rgbaCanvas) => {
 
 (async function () {
     await refreshTokens(); // wachten totdat je de tokens hebt (duurt nu langer);
-    connectSocket();
 
+    connectSocket();
     startPlacement();
 
     setInterval(() => {
@@ -152,7 +147,7 @@ let getPendingWork = (work, rgbaOrder, rgbaCanvas) => {
 function startPlacement() {
     if (!hasTokens) {
         // Probeer over een seconde opnieuw.
-        setTimeout(startPlacement, 1000);
+        setTimeout(startPlacement, 10000);
         return
     }
 
@@ -182,10 +177,11 @@ function request(options, body) {
     });
     return promise
 }
-async function GetToken(username, password) {
-    let place_url = "https://www.reddit.com/r/place/"
-    let reddit_url = "https://www.reddit.com/login/"
-    let response = await fetch(reddit_url); //pak de csrf token van de login form (ook nodig voor sesion cookie)
+
+async function getToken(username, password) {
+    let placeUrl = "https://www.reddit.com/r/place/"
+    let redditUrl = "https://www.reddit.com/login/"
+    let response = await fetch(redditUrl); //pak de csrf token van de login form (ook nodig voor sesion cookie)
     let responseText = await response.text();
 
     let csrf = responseText.match(/csrf_token" value\="(.*?)">/)[1]; // crsf token
@@ -207,32 +203,32 @@ async function GetToken(username, password) {
 
     //node fetch werkt hier niet want die set bepalde header die niet mogen geset worden
     let result = await request(options, body);
-    let cookie_reddit_session;
+    let cookieRedditSession;
     try {
-        cookie_reddit_session = result.headers['set-cookie'][0].match(/reddit_session\=(.*?);/)[1]; //reddit_session cookie
+        cookieRedditSession = result.headers['set-cookie'][0].match(/reddit_session\=(.*?);/)[1]; //reddit_session cookie
     } catch (e) {
         console.error("[!!] Set-cookie header not found. Wrong username password combination");
     }
     
-    response = await fetch(place_url, {
+    response = await fetch(placeUrl, {
         headers: {
-            cookie: `reddit_session=${cookie_reddit_session}`
+            cookie: `reddit_session=${cookieRedditSession}`
         }
     })
+    
     responseText = await response.text();
 
     return responseText.split('\"accessToken\":\"')[1].split('"')[0];
 }
 
-
 async function refreshTokens() {
     let tokens = [];
-    if (userNames && passWords) {
-        for (let i = 0; i < userNames.length; i++) {
-            let password = passWords[i];
-            let username = userNames[i];
+    if (usernames && passwords) {
+        for (let i = 0; i < usernames.length; i++) {
+            let username = usernames[i];
+            let password = passwords[i];
             console.log(`Getting reddit session token for ${username}`);
-            let token = await GetToken(username, password);
+            let token = await getToken(username, password);
             tokens.push(token);
         }
         console.log("Refreshed tokens: ", tokens)
@@ -242,9 +238,6 @@ async function refreshTokens() {
         hasTokens = true;
         return
     }
-
-
-
 
     for (const cookie of redditSessionCookies) {
         const response = await fetch("https://www.reddit.com/r/place/", {
@@ -270,17 +263,17 @@ function connectSocket() {
 
     socket = new WebSocket('wss://placebot.oc.tc/api/ws');
 
-    socket.onerror = function (e) {
+    socket.onerror = (e) => {
         console.error("Socket error: " + e.message)
     }
 
-    socket.onopen = function () {
+    socket.onopen = () => {
         console.log('Connected to the Overcast Place Bot server!')
         socket.send(JSON.stringify({ type: 'getmap' }));
         socket.send(JSON.stringify({ type: 'brand', brand: `nodeheadlessV${VERSION_NUMBER}` }));
     };
 
-    socket.onmessage = async function (message) {
+    socket.onmessage = async function(message) {
         var data;
         try {
             data = JSON.parse(message.data);
@@ -299,7 +292,7 @@ function connectSocket() {
         }
     };
 
-    socket.onclose = function (e) {
+    socket.onclose = (e) => {
         console.warn(`Overcast Place Bot server has disconnected: ${e.reason}`)
         console.error('Socketfout: ', e.reason);
         socket.close();
@@ -309,8 +302,8 @@ function connectSocket() {
 
 async function attemptPlace(accessToken) {
     let retry = () => attemptPlace(accessToken);
-    if (currentOrderList === undefined) {
-        setTimeout(retry, 2000); // probeer opnieuw in 2sec.
+    if (!currentOrderList) {
+        setTimeout(retry, 10000); // probeer opnieuw in 2sec.
         return;
     }
 
@@ -335,8 +328,8 @@ async function attemptPlace(accessToken) {
     const rgbaCanvas = rgbaJoinV(rgbaCanvasH0, rgbaCanvasH1);
     const work = getPendingWork(currentOrderList, rgbaOrder, rgbaCanvas);
 
-    if (work.length === 0) {
-        console.log(`All pixels are already in the right place! Try again in 30 seconds...`);
+    if (!work.length) {
+        console.log(`All pixels are already in the right place! Trying again in 30 seconds...`);
         setTimeout(retry, 30000); // probeer opnieuw in 30sec.
         return;
     }
@@ -469,13 +462,13 @@ async function getCurrentImageUrl(id = '0') {
 
 function getMapFromUrl(url) {
     return new Promise((resolve, reject) => {
-        getPixels(url, function (err, pixels) {
+        getPixels(url, (err, pixels) => {
             if (err) {
                 console.log("Bad image path")
                 reject()
                 return
             }
-            resolve(pixels)
+            resolve(pixels);
         })
     });
 }
@@ -492,5 +485,6 @@ function rgbToHex(r, g, b) {
     return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1).toUpperCase();
 }
 
-let rgbaOrderToHex = (i, rgbaOrder) =>
-    rgbToHex(rgbaOrder[i * 4], rgbaOrder[i * 4 + 1], rgbaOrder[i * 4 + 2]);
+function rgbaOrderToHex (i, rgbaOrder) {
+    return rgbToHex(rgbaOrder[i * 4], rgbaOrder[i * 4 + 1], rgbaOrder[i * 4 + 2]);
+}
